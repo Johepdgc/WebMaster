@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WebMaster")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4c24a9631479e098bd0c1d7dd8a14783fd0c1ddd")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5341683ded30a527583d92fb3c15d7e2d5a311a0")]
 [assembly: System.Reflection.AssemblyProductAttribute("WebMaster")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WebMaster")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
