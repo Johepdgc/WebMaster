@@ -1,62 +1,123 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using System;
+using System.Threading.Tasks;
+using WebMaster.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
-internal class Program
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddControllersWithViews();
+
+// Configurar la base de datos, en este caso SQL Server con Azure
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Configuración de Identity
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
+builder.Services.AddAuthorization(options =>
 {
-    private static void Main(string[] args)
-    {
-        var builder = WebApplication.CreateBuilder(args);
+    options.AddPolicy("RequireAdminRole", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("RequireSellerRole", policy => policy.RequireRole("Seller"));
+    options.AddPolicy("RequireAccountantRole", policy => policy.RequireRole("Accountant"));
+});
 
-        // Add services to the container.
-        builder.Services.AddControllersWithViews();
+// Configuración de políticas de password
+builder.Services.Configure<IdentityOptions>(options =>
+{
+    // Configurar opciones de password, lockout, etc.
+    options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 6;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireLowercase = false;
 
-        // Configurar la base de datos, en este caso SQL Server con Azure
-        builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    // Configurar opciones de lockout
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(30);
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.AllowedForNewUsers = true;
 
-        // Configuración de Identity
-        builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
-            .AddEntityFrameworkStores<ApplicationDbContext>()
-            .AddDefaultTokenProviders();
+    // Configurar opciones de usuario
+    options.User.RequireUniqueEmail = true;
+});
 
-        // Configuración de políticas de password
-        builder.Services.Configure<IdentityOptions>(options =>
-        {
-            // Configurar opciones de password, lockout, etc.
-            options.Password.RequireDigit = true;
-            options.Password.RequiredLength = 6;
-            options.Password.RequireNonAlphanumeric = false;
-            options.Password.RequireUppercase = true;
-            options.Password.RequireLowercase = false;
-        });
+builder.Services.AddRazorPages();
 
-        builder.Services.AddControllersWithViews();
-        builder.Services.AddRazorPages();
+var app = builder.Build();
 
-        var app = builder.Build();
+// // Seed Roles and Users
+// using var scope = app.Services.CreateScope();
+// {
+//     var services = scope.ServiceProvider;
+//     var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+//     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
-        // Configure the HTTP request pipeline.
-        if (!app.Environment.IsDevelopment())
-        {
-            app.UseExceptionHandler("/Home/Error");
-            // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-            app.UseHsts();
-        }
+//     await SeedRolesAndUsers(userManager, roleManager);
+// }
 
-        app.UseHttpsRedirection();
-        app.UseStaticFiles();
-
-        app.UseRouting();
-
-        app.UseAuthorization();
-        app.UseAuthentication(); // Autenticación
-
-        app.MapControllerRoute(
-            name: "default",
-            pattern: "{controller=Home}/{action=Index}/{id?}");
-
-        app.MapRazorPages(); // Soporte para Razor Pages
-
-        app.Run(); // La aplicación se ejecuta con el comando en consola dotnet run
-    }
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
 }
+else
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+
+app.UseRouting();
+
+app.UseAuthentication(); // Autenticación
+app.UseAuthorization();
+
+app.MapRazorPages(); // Mapa de páginas de Identity
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Account}/{action=Login}/{id?}");
+
+app.Run(); // La aplicación se ejecuta con el comando en consola dotnet run
+
+// static async Task SeedRolesAndUsers(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+// {
+//     string[] roleNames = { "Admin", "Seller", "Accountant" };
+//     IdentityResult roleResult;
+
+//     foreach (var roleName in roleNames)
+//     {
+//         var roleExist = await roleManager.RoleExistsAsync(roleName);
+//         if (!roleExist)
+//         {
+//             roleResult = await roleManager.CreateAsync(new IdentityRole(roleName));
+//         }
+//     }
+
+//     // Create Admin user
+//     var adminUser = new ApplicationUser
+//     {
+//         UserName = "admin@admin.com",
+//         Email = "admin@admin.com"
+//     };
+
+//     string adminPassword = "Admin@123";
+//     var user = await userManager.FindByEmailAsync("admin@admin.com");
+
+//     if (user == null)
+//     {
+//         var createAdminUser = await userManager.CreateAsync(adminUser, adminPassword);
+//         if (createAdminUser.Succeeded)
+//         {
+//             await userManager.AddToRoleAsync(adminUser, "Admin");
+//         }
+//     }
+// }
